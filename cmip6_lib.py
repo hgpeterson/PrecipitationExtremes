@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 import os, re
 
 # plotting stylesheet
-plt.style.use("~/paper_plots.mplstyle")
+plt.style.use("plots.mplstyle")
 
 ################################################################################
 # histogram stuff
@@ -30,15 +30,17 @@ Computes percentiles from histogram data and returns interpolation function
 """
 def hist_to_pctls(bins, hist):
     # to pdf
-    bin_widths, hist = hist_to_pdf(bins, hist)
+    bin_widths, pdf = hist_to_pdf(bins, hist)
     
     # percentiles
-    pctls = np.cumsum(hist*bin_widths)
+    pctls = np.cumsum(pdf*bin_widths)
 
     # interpolate
-    domain = np.where(np.logical_and(pctls >= 0.01, pctls <= 0.999999))
+    domain = np.where(np.logical_and(pctls >= 0.01, pctls < 1))
     x = pctls[domain]
     y = bins[1:][domain]
+    x, x_i = np.unique(x, return_index=True)
+    y = y[x_i]
     precip_func = interp1d(x, y, kind="cubic", bounds_error=False, fill_value=np.nan)
     
     return pctls, precip_func
@@ -245,7 +247,7 @@ def setup_pctl_plot(ax):
     return axtwin
 
 """
-    pctl_plot_hist(ax, bins_c, hist_c, k_c, θ_c, bins_w, hist_w, k_w, θ_w)
+    axtwin = pctl_plot_hist(ax, ΔT, bins_c, hist_c, k_c, θ_c, bins_w, hist_w, k_w, θ_w)
     
 Make a percentile plot from histogram data.
 """
@@ -255,7 +257,8 @@ def pctl_plot_hist(ax, ΔT, bins_c, hist_c, k_c, θ_c, bins_w, hist_w, k_w, θ_w
     
     # percentiles for fits
     pctl_min = 0.09
-    pctl_max = 0.9999
+    pctl_max = 0.9999999999999
+    # pctl_max = 0.9999
     pctls = inv_x_transform(np.linspace(x_transform(pctl_min), x_transform(pctl_max), 100))
     
     # gamma fits
@@ -273,11 +276,11 @@ def pctl_plot_hist(ax, ΔT, bins_c, hist_c, k_c, θ_c, bins_w, hist_w, k_w, θ_w
     ax.plot(x_transform(pctls), y_transform(precip_fit_w), c="tab:orange", ls="--")
     
     # compute ratios
-#     ratio = 100*(precip_func_w(pctls)/precip_func_c(pctls) - 1)/ΔT
+    ratio = 100*(precip_func_w(pctls)/precip_func_c(pctls) - 1)/ΔT
     ratio_fit = 100*(precip_fit_w/precip_fit_c - 1)/ΔT
     
     # ratios on twin axis
-#     axtwin.plot(x_transform(pctls), ratio, c="tab:green")
+    axtwin.plot(x_transform(pctls), ratio, c="tab:green")
     axtwin.plot(x_transform(pctls), ratio_fit, c="tab:green", ls="--")
     
     return axtwin
@@ -340,3 +343,14 @@ def pctl_plot(ax, ΔT, pctls, precip_pctls_c, precip_pctls_boot_c, k_c, θ_c, pr
     pctl_plot_ratios(axtwin, ΔT, pctls, precip_pctls_c, precip_pctls_boot_c, k_c, θ_c, precip_pctls_w, precip_pctls_boot_w, k_w, θ_w)
     
     return axtwin
+
+################################################################################
+# plotting utils
+################################################################################
+
+def savefig(file):
+    """
+        Call plt.savefig() while also printing out the file name. 
+    """
+    plt.savefig(file)
+    print(file)
