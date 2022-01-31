@@ -131,6 +131,7 @@ dmypy.json
 # plots
 *.png
 *.pdf
+*.gif
 
 # data
 *.npz
