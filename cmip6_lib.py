@@ -91,8 +91,8 @@ def gamma_dist(x, k, θ):
 Get the mean and standard deviation of precip data.
 """
 def get_mean_std(precip):
-    μ = np.mean(precip) # this is why we weight precip by cos(ϕ)
-    σ = np.std(precip)
+    μ = np.nanmean(precip) # this is why we weight precip by cos(ϕ)
+    σ = np.nanstd(precip)
     return μ, σ
 
 """
