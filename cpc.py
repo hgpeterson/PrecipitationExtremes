@@ -12,6 +12,7 @@ from matplotlib import cm
 from matplotlib import colors
 import cartopy.crs as ccrs 
 import warnings
+import os
 warnings.filterwarnings('ignore')
 import cmip6_lib
 
@@ -222,6 +223,73 @@ def plot_hists():
     print(f"cpc_{domain}_hist.png")
     plt.close()
 
+def plot_maps():
+    # pctl = 99.9
+    pctl = 99.99
+
+    # collect data
+    dfile = f"data/cpc_p{pctl}.npz"
+    if os.path.isfile(dfile):
+        # load it
+        d = np.load(dfile)
+        lat = d["lat"]
+        lon = d["lon"]
+        p_c = d["p_c"]
+        p_w = d["p_w"]
+    else:
+        # compute it
+        print("loading precip...")
+        pctls, precip_c, precip_pctls_c, precip_pctls_boot_c, bins_c, hist_c, μ_c, σ_c, k_c, θ_c = load_data("data/cpc_global_first_half.npz")
+        pctls, precip_w, precip_pctls_w, precip_pctls_boot_w, bins_w, hist_w, μ_w, σ_w, k_w, θ_w = load_data("data/cpc_global_last_half.npz")
+
+        print(f"computing {pctl}th percentiles...")
+        print("\tcontrol")
+        p_c = np.nanpercentile(precip_c, pctl, axis=0)
+        print("\twarming")
+        p_w = np.nanpercentile(precip_w, pctl, axis=0)
+
+        ds = xr.open_dataset("../../cpc/precip.1979.nc")
+        lat = ds.lat.values
+        lon = ds.lon.values
+
+        # save it
+        print(f"loading {pctl}th percentiles...")
+        np.savez(dfile, lat=lat, lon=lon, p_c=p_c, p_w=p_w)
+        print(dfile)
+
+
+    # plot
+    fig = plt.figure(figsize=(6.5, 6.5/1.62))
+    frac = 0.02
+    pad = 0.02
+
+    ax1 = fig.add_subplot(1, 3, 1, projection=ccrs.Robinson())
+    ax2 = fig.add_subplot(1, 3, 2, projection=ccrs.Robinson())
+    ax3 = fig.add_subplot(1, 3, 3, projection=ccrs.Robinson())
+
+    vmax = 100
+    im1 = ax1.pcolormesh(lon, lat, p_c, vmin=0, vmax=vmax, cmap="Blues", transform=ccrs.PlateCarree())
+    im2 = ax2.pcolormesh(lon, lat, p_w, vmin=0, vmax=vmax, cmap="Blues", transform=ccrs.PlateCarree())
+    plt.colorbar(im1, ax=ax1, label=f"{pctl}th Percentile (mm)", orientation="horizontal", extend="max", fraction=frac, pad=pad)
+    plt.colorbar(im2, ax=ax2, label=f"{pctl}th Percentile (mm)", orientation="horizontal", extend="max", fraction=frac, pad=pad)
+
+    r = 100*(p_w/p_c - 1)
+    vmax = 30
+    im3 = ax3.pcolormesh(lon, lat, r, vmin=-vmax, vmax=vmax, cmap="BrBG", transform=ccrs.PlateCarree())
+    plt.colorbar(im3, ax=ax3, label="\% Change", orientation="horizontal", extend="both", fraction=frac, pad=pad)
+
+    ax1.set_title(f"1979--1999")
+    ax2.set_title(f"2000--2020")
+    ax3.set_title(f"Change")
+
+    ax1.coastlines(lw=0.5)
+    ax2.coastlines(lw=0.5)
+    ax3.coastlines(lw=0.5)
+
+    fig.savefig(f"cpc_map_p{pctl}.png")
+    print(f"cpc_map_p{pctl}.png")
+    plt.close()
+    
 ################################################################################
 # run
 ################################################################################
@@ -256,14 +324,14 @@ path = "/export/data1/hgpeterson/cpc/"
 # data files
 dfiles = path + "/precip*.nc"
 
-# get pctls
-get_data(dfiles, pctls, nbins, latslice, lonslice)
+# # get pctls
+# get_data(dfiles, pctls, nbins, latslice, lonslice)
 
-# plot pctls
-plot_pctls()
+# # plot pctls
+# plot_pctls()
 
-# plot hists
-plot_hists()
+# # plot hists
+# plot_hists()
 
-# # plot maps
-# plot_maps()
+# plot maps
+plot_maps()
