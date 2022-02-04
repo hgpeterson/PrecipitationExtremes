@@ -1,0 +1,13 @@
+computing control pctls.
+	loading precip
+	percentiles
+	hist
+computing warming pctls
+	loading precip
+	percentiles
+	hist
+computing mean and std
+	0.5507171750068665, 2.308668375015259
+	0.535180926322937, 2.364567995071411
+cpc_extrop_pctl.png
+cpc_extrop_hist.png
